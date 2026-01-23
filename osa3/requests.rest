@@ -1,0 +1,44 @@
+### Get all persons
+GET http://localhost:3001/api/persons
+
+
+### Get unknown endpoint (3.7)
+GET http://localhost:3001/api/unknown
+
+
+### Add a new person (OK)
+POST http://localhost:3001/api/persons
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "number": "123-456"
+}
+
+
+### Add person without name (error)
+POST http://localhost:3001/api/persons
+Content-Type: application/json
+
+{
+  "number": "999"
+}
+
+
+### Add person without number (error)
+POST http://localhost:3001/api/persons
+Content-Type: application/json
+
+{
+  "name": "No Number"
+}
+
+
+### Add duplicate name (error)
+POST http://localhost:3001/api/persons
+Content-Type: application/json
+
+{
+  "name": "Arto Hellas",
+  "number": "000"
+}

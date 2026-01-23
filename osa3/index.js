@@ -1,7 +1,11 @@
+console.log('OSA3 INDEX.JS LOADED')
+
 const express = require('express')
 const app = express()
 
-const persons = [
+app.use(express.json())
+
+let persons = [
   {
     id: 1,
     name: "Arto Hellas",
@@ -14,30 +18,71 @@ const persons = [
   }
 ]
 
-// 3.1: get all persons
-app.get('/api/persons', (req, res) => {
-  res.json(persons)
+// GET all persons
+app.get('/api/persons', (request, response) => {
+  response.json(persons)
 })
 
-// 3.2: info
-app.get('/info', (req, res) => {
-  res.send(`
-    <p>Phonebook has info for ${persons.length} people</p>
-    <p>${new Date()}</p>
-  `)
-})
-
-// 3.6: get person by id
-app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
+// GET single person
+app.get('/api/persons/:id', (request, response) => {
+  const id = Number(request.params.id)
   const person = persons.find(p => p.id === id)
 
   if (person) {
-    res.json(person)
+    response.json(person)
   } else {
-    res.status(404).end()
+    response.status(404).end()
   }
 })
+
+// DELETE person
+app.delete('/api/persons/:id', (request, response) => {
+  const id = Number(request.params.id)
+  persons = persons.filter(p => p.id !== id)
+  response.status(204).end()
+})
+
+// POST new person (задание 3.8)
+app.post('/api/persons', (request, response) => {
+  const body = request.body
+
+  if (!body.name) {
+    return response.status(400).json({
+      error: 'name missing'
+    })
+  }
+
+  if (!body.number) {
+    return response.status(400).json({
+      error: 'number missing'
+    })
+  }
+
+  const nameExists = persons.find(p => p.name === body.name)
+  if (nameExists) {
+    return response.status(400).json({
+      error: 'name must be unique'
+    })
+  }
+
+  const person = {
+    id: Math.floor(Math.random() * 1000000),
+    name: body.name,
+    number: body.number
+  }
+
+  persons = persons.concat(person)
+  response.json(person)
+})
+
+// unknown endpoint (задание 3.7)
+const unknownEndpoint = (request, response) => {
+  response.status(404).json({
+    error: 'unknown endpoint'
+  })
+}
+
+app.use(unknownEndpoint)
 
 const PORT = 3001
 app.listen(PORT, () => {
