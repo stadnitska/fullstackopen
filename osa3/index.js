@@ -1,102 +1,77 @@
 const express = require('express')
-const morgan = require('morgan')
 const cors = require('cors')
+const morgan = require('morgan')
+const path = require('path')
 
 const app = express()
 
+// middleware
 app.use(cors())
 app.use(express.json())
 
-
-/* ===== MORGAN 3.7–3.8 ===== */
-
-// custom token для body
-morgan.token('body', (request) => {
-  if (request.method === 'POST') {
-    return JSON.stringify(request.body)
-  }
-  return ''
+// morgan logging (3.7–3.8)
+morgan.token('body', (req) => {
+  return JSON.stringify(req.body)
 })
 
-// morgan с tiny + body
-app.use(
-  morgan(':method :url :status :res[content-length] - :response-time ms :body')
-)
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
-/* ===== DATA ===== */
+// 🔴 FRONTEND (3.11)
+// static files MUST be before API routes
+app.use(express.static(path.join(__dirname, 'dist')))
 
+// dummy data (until MongoDB in 3.12)
 let persons = [
   {
     id: 1,
     name: 'Arto Hellas',
-    number: '040-123456',
+    number: '040-123456'
   },
   {
     id: 2,
     name: 'Ada Lovelace',
-    number: '39-44-5323523',
-  },
+    number: '39-44-5323523'
+  }
 ]
 
-/* ===== ROUTES ===== */
-
+// API ROUTES
 app.get('/api/persons', (request, response) => {
   response.json(persons)
-})
-
-app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const person = persons.find((p) => p.id === id)
-
-  if (person) {
-    response.json(person)
-  } else {
-    response.status(404).end()
-  }
-})
-
-app.delete('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  persons = persons.filter((p) => p.id !== id)
-  response.status(204).end()
 })
 
 app.post('/api/persons', (request, response) => {
   const body = request.body
 
-  if (!body.name) {
-    return response.status(400).json({ error: 'name missing' })
-  }
-
-  if (!body.number) {
-    return response.status(400).json({ error: 'number missing' })
-  }
-
-  const nameExists = persons.find((p) => p.name === body.name)
-  if (nameExists) {
-    return response.status(400).json({ error: 'name must be unique' })
+  if (!body.name || !body.number) {
+    return response.status(400).json({
+      error: 'name or number missing'
+    })
   }
 
   const person = {
     id: Math.floor(Math.random() * 1000000),
     name: body.name,
-    number: body.number,
+    number: body.number
   }
 
   persons = persons.concat(person)
-  return response.json(person)
+  response.json(person)
 })
 
-/* ===== UNKNOWN ENDPOINT ===== */
+app.delete('/api/persons/:id', (request, response) => {
+  const id = Number(request.params.id)
+  persons = persons.filter(person => person.id !== id)
+  response.status(204).end()
+})
 
+// UNKNOWN ENDPOINT — MUST BE LAST
 const unknownEndpoint = (request, response) => {
-  response.status(404).json({ error: 'unknown endpoint' })
+  response.status(404).send({ error: 'unknown endpoint' })
 }
 
 app.use(unknownEndpoint)
 
-/* ===== START ===== */
-
+// SERVER
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
