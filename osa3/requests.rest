@@ -1,5 +1,5 @@
 ### Get all persons
-GET http://localhost:3001/api/persons
+GET http://localhost:4000/api/persons
 
 
 ### Get unknown endpoint (3.7)
@@ -42,3 +42,4 @@ Content-Type: application/json
   "name": "Arto Hellas",
   "number": "000"
 }
+
