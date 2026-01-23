@@ -1,5 +1,3 @@
-console.log('OSA3 INDEX.JS LOADED')
-
 const express = require('express')
 const app = express()
 
