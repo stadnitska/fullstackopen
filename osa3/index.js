@@ -1,77 +1,134 @@
+require('dotenv').config()
 const express = require('express')
-const cors = require('cors')
-const morgan = require('morgan')
-const path = require('path')
-
 const app = express()
+const cors = require('cors')
+const mongoose = require('mongoose')
+const Person = require('./models/person')
 
-// middleware
+// =======================
+// MIDDLEWARE
+// =======================
+
 app.use(cors())
 app.use(express.json())
+app.use(express.static('dist'))
 
-// morgan logging (3.7–3.8)
-morgan.token('body', (req) => {
-  return JSON.stringify(req.body)
+// =======================
+// MONGODB
+// =======================
+
+const url = process.env.MONGODB_URI
+
+mongoose.set('strictQuery', false)
+
+mongoose
+  .connect(url)
+  .then(() => {
+    console.log('connected to MongoDB')
+  })
+  .catch(error => {
+    console.log('error connecting to MongoDB:', error.message)
+  })
+
+// =======================
+// ROUTES
+// =======================
+
+app.get('/api/persons', (req, res) => {
+  Person.find({}).then(persons => {
+    res.json(persons)
+  })
 })
 
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
-
-// 🔴 FRONTEND (3.11)
-// static files MUST be before API routes
-app.use(express.static(path.join(__dirname, 'dist')))
-
-// dummy data (until MongoDB in 3.12)
-let persons = [
-  {
-    id: 1,
-    name: 'Arto Hellas',
-    number: '040-123456'
-  },
-  {
-    id: 2,
-    name: 'Ada Lovelace',
-    number: '39-44-5323523'
-  }
-]
-
-// API ROUTES
-app.get('/api/persons', (request, response) => {
-  response.json(persons)
+app.get('/info', (req, res) => {
+  Person.countDocuments({}).then(count => {
+    res.send(
+      `<p>Phonebook has info for ${count} people</p>
+       <p>${new Date()}</p>`
+    )
+  })
 })
 
-app.post('/api/persons', (request, response) => {
-  const body = request.body
-
-  if (!body.name || !body.number) {
-    return response.status(400).json({
-      error: 'name or number missing'
+app.get('/api/persons/:id', (req, res, next) => {
+  Person.findById(req.params.id)
+    .then(person => {
+      if (person) {
+        res.json(person)
+      } else {
+        res.status(404).end()
+      }
     })
-  }
+    .catch(error => next(error))
+})
 
-  const person = {
-    id: Math.floor(Math.random() * 1000000),
+app.post('/api/persons', (req, res, next) => {
+  const body = req.body
+
+  const person = new Person({
     name: body.name,
-    number: body.number
-  }
+    number: body.number,
+  })
 
-  persons = persons.concat(person)
-  response.json(person)
+  person
+    .save()
+    .then(savedPerson => {
+      res.json(savedPerson)
+    })
+    .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  persons = persons.filter(person => person.id !== id)
-  response.status(204).end()
+app.put('/api/persons/:id', (req, res, next) => {
+  const { number } = req.body
+
+  Person.findByIdAndUpdate(
+    req.params.id,
+    { number },
+    { new: true, runValidators: true, context: 'query' }
+  )
+    .then(updatedPerson => {
+      res.json(updatedPerson)
+    })
+    .catch(error => next(error))
 })
 
-// UNKNOWN ENDPOINT — MUST BE LAST
-const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: 'unknown endpoint' })
+app.delete('/api/persons/:id', (req, res, next) => {
+  Person.findByIdAndDelete(req.params.id)
+    .then(() => {
+      res.status(204).end()
+    })
+    .catch(error => next(error))
+})
+
+// =======================
+// ERROR HANDLING
+// =======================
+
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({ error: 'unknown endpoint' })
 }
 
 app.use(unknownEndpoint)
 
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return res.status(400).json({ error: 'malformatted id' })
+  }
+
+  if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
+  }
+
+  next(error)
+}
+
+app.use(errorHandler)
+
+// =======================
 // SERVER
+// =======================
+
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)

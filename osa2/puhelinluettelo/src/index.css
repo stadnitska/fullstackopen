@@ -12,7 +12,13 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
+.error {
+  color: red;
+  border: 2px solid red;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #f8d7da;
+}
 a {
   font-weight: 500;
   color: #646cff;
