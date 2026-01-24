@@ -1,21 +1,25 @@
 import js from '@eslint/js'
-import globals from 'globals'
 
 export default [
-  js.configs.recommended,
+  // 1️⃣ Ignore frontend build
+  {
+    ignores: ['dist/**'],
+  },
+
+  // 2️⃣ Backend (Node.js)
   {
     files: ['**/*.js'],
     languageOptions: {
-      ecmaVersion: 2021,
       sourceType: 'commonjs',
       globals: {
-        ...globals.node,
+        require: 'readonly',
+        module: 'readonly',
+        console: 'readonly',
+        process: 'readonly',
       },
     },
     rules: {
-      'linebreak-style': 'off',
-      'no-console': 'off',
-      eqeqeq: 'error',
+      ...js.configs.recommended.rules,
     },
   },
 ]
